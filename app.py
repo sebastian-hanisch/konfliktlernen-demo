@@ -14,6 +14,7 @@ import streamlit as st
 
 import kfl_algorithm as A
 import kfl_constants as C
+import kfl_fortschritt as F
 import kfl_messung as M
 import kfl_scenario as S
 import kfl_trace as T
@@ -71,10 +72,20 @@ def _md_table(kopf, zeilen):
 
 
 def _live(art, params):
-    """Rechnet eine Zelle neu (deterministisch) und gibt (Zelle, Sekunden) zurück."""
-    t0 = time.perf_counter()
-    zelle = M.messe_lernzelle(params["n"], bool(params["min"])) if art == "lernen" else M.messe_zelle(art, **params)
-    return zelle, time.perf_counter() - t0
+    """Rechnet eine Zelle neu (deterministisch) und gibt (Zelle, Sekunden, aus dem Zwischenspeicher) zurück. Die Formeln der Zellen mit Zufall, Rampen, Schur und
+    Schubfach werden einzeln zwischengespeichert; der Fortschrittsbalken zählt die fertigen Formeln."""
+    t0, vorher = time.perf_counter(), F.gerechnet()
+    if art == "lernen":
+        zelle = M.messe_lernzelle(params["n"], bool(params["min"]))
+    else:
+        with F.fortschrittsbalken("Rechnet die Formeln der Zelle neu") as melde:
+            zelle = F.zelle(art, params, melde)
+    return zelle, time.perf_counter() - t0, art != "lernen" and F.gerechnet() == vorher
+
+
+def _wann(sek, aus_dem_speicher):
+    """Der Zusatz im Satz nach dem Nachrechnen: Dauer dieses Klicks oder der Hinweis auf den Zwischenspeicher."""
+    return " (aus dem Zwischenspeicher: dieselbe Zelle wurde schon gerechnet)" if aus_dem_speicher else f" in {sek:.1f} s"
 
 
 def _live_knopf(schl, art, params, vorg, taste):
@@ -83,15 +94,16 @@ def _live_knopf(schl, art, params, vorg, taste):
         st.caption("Diese Zelle ist **vorgerechnet** (Skript `tools/messe_vorgerechnet.py`, nicht live): das Nachrechnen in der App dauert zu lange.")
         return
     gespeichert = vorg.get(schl)
-    st.caption("Die Zahlen oben sind **vorgerechnet** (nicht live). Diese Zelle lässt sich hier neu rechnen und mit den gespeicherten Zeilen vergleichen.")
+    st.caption("Die Zahlen oben sind **vorgerechnet** (nicht live). Diese Zelle lässt sich hier neu rechnen und mit den gespeicherten Zeilen vergleichen; "
+               "ein Fortschrittsbalken zählt die fertigen Formeln, und eine schon nachgerechnete Zelle kommt beim erneuten Klicken aus dem Zwischenspeicher.")
     if st.button("🔁 Diese Zelle jetzt live nachrechnen", key=f"live_{taste}"):
-        with st.spinner("Rechnet alle Formeln der Zelle neu (kleine Zellen brauchen Sekunden)…"):
-            zelle, sek = _live(art, params)
+        zelle, sek, aus_speicher = _live(art, params)
+        wann = _wann(sek, aus_speicher)
         gleich = gespeichert is not None and zelle["zeilen"] == gespeichert["zeilen"]
         if gleich:
-            st.success(f"Live nachgerechnet in {sek:.1f} s: alle {len(zelle['zeilen'])} Zeilen stimmen mit den vorgerechneten überein.")
+            st.success(f"Live nachgerechnet{wann}: alle {len(zelle['zeilen'])} Zeilen stimmen mit den vorgerechneten überein.")
         else:
-            st.warning(f"Live nachgerechnet in {sek:.1f} s: die Zeilen weichen von den vorgerechneten ab oder diese fehlen.")
+            st.warning(f"Live nachgerechnet{wann}: die Zeilen weichen von den vorgerechneten ab oder diese fehlen.")
 
 
 # Fester Kopf: nur der Titel bleibt beim Scrollen oben (Stylesheet in kfl_layout.py).
@@ -342,8 +354,8 @@ else:
     if M.live_moeglich("lernen", n=ln):
         st.caption("Die Zahlen sind **vorgerechnet** (nicht live).")
         if st.button("🔁 Beide Zellen live nachrechnen", key=f"live_lern_{ln}"):
-            with st.spinner("Rechnet 12 Formeln mit und ohne Minimieren neu (Sekunden)…"):
-                (neu0, s0), (neu1, s1) = _live("lernen", {"n": ln, "min": 0}), _live("lernen", {"n": ln, "min": 1})
+            with st.spinner("Rechnet 12 Formeln mit und ohne Minimieren neu …"):
+                (neu0, s0, _), (neu1, s1, _) = _live("lernen", {"n": ln, "min": 0}), _live("lernen", {"n": ln, "min": 1})
             if neu0["zeilen"] == z_ohne["zeilen"] and neu1["zeilen"] == z_mit["zeilen"]:
                 st.success(f"Live nachgerechnet in {s0 + s1:.1f} s: alle Zeilen stimmen mit den vorgerechneten überein.")
             else:
