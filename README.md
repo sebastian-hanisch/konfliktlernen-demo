@@ -1,7 +1,6 @@
 # Konfliktklauseln lernen – aus jedem Fehlschlag eine Regel – Streamlit-Demo
 
-<!-- TODO nach dem Deploy: direkt hierher den Live-Link setzen (Leerzeile davor und danach):
-**[→ Demo live ausprobieren](https://sebastianhanisch-konfliktlernen-demo.streamlit.app/)** -->
+**[→ Demo live ausprobieren](https://sebastianhanisch-konfliktlernen-demo.streamlit.app/)**
 
 Stück der **Linie „SAT und Constraint Programming“** in der „Konzepte“-Reihe für die Website „Sebastian Hanisch – Operations Research und Machine Learning“ und **Wurzel ihres SAT-Arms**. Die Demo zeigt, was ein SAT-Löser tut, wenn eine Suche in eine Sackgasse läuft: Er **lernt aus dem Konflikt eine neue Klausel** und springt bis zu der Entscheidung zurück, die den Konflikt verursacht hat (Konfliktlernen, *conflict-driven clause learning*, CDCL). Verglichen wird er mit einer Suche **ohne Gedächtnis** (DPLL), die denselben Fehler in vielen Ästen wiederholen kann. Das Vehikel der Linie ist die **Zuordnung von Aufträgen zu Rampen** (Färbung eines Konfliktgraphen); dazu kommen Zufalls-3-SAT als Wachstumsmaß sowie Schur-Zahlen und das Schubfach als Grenzfälle. Verwandt: `sat-phasenuebergang-demo` (DPLL und Phasenübergang der Komplexitätsklassen-Reihe; das Klausellernen ist dort ausdrücklich nicht gebaut) und `graph-coloring-demo` (gleiches Kernmodell wie die Rampen-Aufgabe, andere Frage: die Reihenfolge).
 
